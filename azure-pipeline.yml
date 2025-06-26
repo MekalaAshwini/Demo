@@ -1,0 +1,69 @@
+pool:
+  name: Default
+
+variables:
+  # Set Terraform version
+  terraformVersion: '1.5.0'
+
+  # Azure environment details
+  azureSubscription: 'Demo'
+
+stages:
+- stage: Terraform_Init
+  displayName: "Initialize Terraform"
+  jobs:
+  - job: Initialize
+    displayName: "Initialize Terraform"
+    steps:
+    - task: TerraformInstaller@1
+      inputs:
+        terraformVersion: 'latest'
+    
+    - task: TerraformTask@5
+      displayName: 'terraform init'
+      inputs:
+        provider: 'azurerm'
+        command: 'init'
+        workingDirectory: 'Terraform'
+        backendServiceArm: 'Demo'
+        backendAzureRmResourceGroupName: 'devops'
+        backendAzureRmStorageAccountName: 'devstore34'
+        backendAzureRmContainerName: 'dev'
+        backendAzureRmKey: 'terraform.tfstate'
+    - task: TerraformTask@5
+      displayName: 'terraform validate'
+      inputs:
+        provider: 'azurerm'
+        command: 'validate'
+        workingDirectory: 'Terraform'
+
+    - checkout: self
+      displayName: "Checkout Code"
+
+- stage: Terraform_Plan
+  displayName: "Terraform Plan"
+  jobs:
+  - job: Plan
+    displayName: "Terraform Plan"
+    steps:
+      - checkout: self
+
+      - task: TerraformInstaller@1
+        displayName: 'terraform install'
+        inputs:
+          terraformVersion: 'latest'
+      
+      - task: TerraformTask@5
+        displayName: 'terraform plan'
+        inputs:
+          provider: 'azurerm'
+          command: 'plan'
+          workingDirectory: 'Terraform'
+          environmentServiceNameAzureRM: 'Demo'
+      - task: TerraformTask@5
+        displayName: 'terraform apply'
+        inputs:
+          provider: 'azurerm'
+          command: 'apply'
+          workingDirectory: 'Terraform'
+          environmentServiceNameAzureRM: 'Demo'
