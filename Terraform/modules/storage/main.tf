@@ -4,6 +4,5 @@ resource "azurerm_storage_account" "storage" {
   location                 = var.location
   account_tier             = "Standard"
   account_replication_type = "LRS"
-  enable_https_traffic_only = true
   tags                     = var.tags
 }
