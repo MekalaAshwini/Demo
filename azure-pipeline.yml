@@ -1,69 +1,48 @@
-pool:
-  name: Default
+name: Deploy Terraform Modules
 
-variables:
-  # Set Terraform version
-  terraformVersion: '1.5.0'
+on:
+  push:
+    branches:
+      - main # Trigger deployment on push to the main branch
+  pull_request:
+    branches:
+      - main # Trigger validation on pull request to main
 
-  # Azure environment details
-  azureSubscription: 'Demo'
+jobs:
+  terraform:
+    name: 'Terraform Apply'
+    runs-on: ubuntu-latest
 
-stages:
-- stage: Terraform_Init
-  displayName: "Initialize Terraform"
-  jobs:
-  - job: Initialize
-    displayName: "Initialize Terraform"
     steps:
-    - task: TerraformInstaller@1
-      inputs:
-        terraformVersion: 'latest'
-    
-    - task: TerraformTask@5
-      displayName: 'terraform init'
-      inputs:
-        provider: 'azurerm'
-        command: 'init'
-        workingDirectory: 'Terraform'
-        backendServiceArm: 'Demo'
-        backendAzureRmResourceGroupName: 'devops'
-        backendAzureRmStorageAccountName: 'devstore34'
-        backendAzureRmContainerName: 'dev'
-        backendAzureRmKey: 'terraform.tfstate'
-    - task: TerraformTask@5
-      displayName: 'terraform validate'
-      inputs:
-        provider: 'azurerm'
-        command: 'validate'
-        workingDirectory: 'Terraform'
+    - name: Checkout Code
+      uses: actions/checkout@v3
 
-    - checkout: self
-      displayName: "Checkout Code"
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.5.0 # Specify the Terraform version
+        cli_config_credentials_token: ${{ secrets.GITHUB_TOKEN }}
 
-- stage: Terraform_Plan
-  displayName: "Terraform Plan"
-  jobs:
-  - job: Plan
-    displayName: "Terraform Plan"
-    steps:
-      - checkout: self
+    - name: Set up Azure CLI for authentication
+      uses: azure/login@v1
+      with:
+        creds: >
+          {
+            "clientId": "${{ secrets.ARM_CLIENT_ID }}",
+            "clientSecret": "${{ secrets.ARM_CLIENT_SECRET }}",
+            "tenantId": "${{ secrets.ARM_TENANT_ID }}",
+            "subscriptionId": "${{ secrets.ARM_SUBSCRIPTION_ID }}"
+          }
 
-      - task: TerraformInstaller@1
-        displayName: 'terraform install'
-        inputs:
-          terraformVersion: 'latest'
-      
-      - task: TerraformTask@5
-        displayName: 'terraform plan'
-        inputs:
-          provider: 'azurerm'
-          command: 'plan'
-          workingDirectory: 'Terraform'
-          environmentServiceNameAzureRM: 'Demo'
-      - task: TerraformTask@5
-        displayName: 'terraform apply'
-        inputs:
-          provider: 'azurerm'
-          command: 'apply'
-          workingDirectory: 'Terraform'
-          environmentServiceNameAzureRM: 'Demo'
+    - name: Terraform Init
+      run: terraform init
+
+    - name: Terraform Validate
+      run: terraform validate
+
+    - name: Terraform Plan
+      run: terraform plan -out=tfplan
+
+    - name: Terraform Apply
+      if: github.ref == 'refs/heads/main' # Only apply on the main branch
+      run: terraform apply -auto-approve tfplan
