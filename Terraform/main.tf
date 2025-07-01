@@ -23,7 +23,7 @@ module "keyvault" {
   keyvault_name       = "demovault34"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
-  tenant_id           = "aa4806a3-83c8-4910-b254-e70e245c6250"
+  tenant_id           = "e591e446-888a-46e7-aee3-9b6a5797bd71"
   vnet_id             = module.vnet.vnet_id
   subnet_id           = module.vnet.subnet_id
 }
