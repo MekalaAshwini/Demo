@@ -57,3 +57,4 @@ module "storage" {
   tags                = {
     environment = "demo"
   }
+}
